@@ -133,6 +133,37 @@ def start_time(start):
 
     return jsonify(all_data)
 
+@app.route("/api/v1.0/<start>/<end>")
+def between(start, end):
+    """Fetch results based on start date. Use the following date format: "YYYY-mm-dd"""
+
+    session = Session(engine)
+
+    sel = [
+        Measurement.date,
+        func.min(Measurement.tobs),
+        func.avg(Measurement.tobs),
+        func.max(Measurement.tobs)
+    ]
+
+    aggregation = (session.\
+        query(*sel).\
+        filter(Measurement.date >= start, Measurement.date <= end).\
+            all())
+
+    session.close()
+        
+    all_data = []
+    for date, min, avg, max in aggregation:
+        dict = {}
+        dict["date"] = date
+        dict["min"] = min
+        dict["avg"] = avg
+        dict["max"] = max
+        all_data.append(dict)
+
+    return jsonify(all_data)
+
     # return jsonify({"error": f"Date with start {start} not found."}), 404
 
 if __name__ == '__main__':
