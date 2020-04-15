@@ -86,7 +86,10 @@ def tobs():
 
     """Return a list of all passenger names"""
     # Query all passengers
-    results = (session.query(Measurement.date, Measurement.tobs).filter(Measurement.date > '2016-08-23', Measurement.station == 'USC00519523')).all()
+    results = (session.\
+        query(Measurement.date, Measurement.tobs).\
+        filter(Measurement.date > '2016-08-23', Measurement.station == 'USC00519523'))\
+            .all()
 
     session.close()
 
@@ -99,9 +102,38 @@ def tobs():
 
     return jsonify(all_data)
 
-#     # Convert list of tuples into normal list
-#     temps_to_json = list(np.ravel(lst_temps))
+@app.route("/api/v1.0/<start>")
+def start_time(start):
+    """Fetch results based on start date. Use the following date format: "YYYY-mm-dd"""
 
+    session = Session(engine)
+
+    sel = [
+        Measurement.date,
+        func.min(Measurement.tobs),
+        func.avg(Measurement.tobs),
+        func.max(Measurement.tobs)
+    ]
+
+    aggregation = (session.\
+        query(*sel).\
+        filter(Measurement.date >= start).\
+            all())
+
+    session.close()
+        
+    all_data = []
+    for date, min, avg, max in aggregation:
+        dict = {}
+        dict["date"] = date
+        dict["min"] = min
+        dict["avg"] = avg
+        dict["max"] = max
+        all_data.append(dict)
+
+    return jsonify(all_data)
+
+    # return jsonify({"error": f"Date with start {start} not found."}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
